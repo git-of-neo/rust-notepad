@@ -1,0 +1,6 @@
+/target
+*sqlite3*
+/lib
+*.dll
+*.exe
+/bak
