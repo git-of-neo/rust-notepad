@@ -2,7 +2,7 @@
 CREATE TABLE note (
     id INTEGER PRIMARY KEY,
     filename TEXT NOT NULL,
-    uid INTEGER NOT NULL UNIQUE, 
+    uid INTEGER UNIQUE, 
     body TEXT NOT NULL DEFAULT ''
 );
 
