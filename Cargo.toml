@@ -1,0 +1,16 @@
+[package]
+name = "rust-notepad"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlx = { version = "0.7", features = ["runtime-tokio", "sqlite", "migrate"] }
+actix-web = { version = "4" }
+dotenvy = { version = "0.15.7" }
+anyhow = "1.0.75"
+minijinja = { version = "1.0.10", features = ["loader"] }
+env_logger = "0.10.1"
+serde = { version = "1.0.193", features = ["derive"] }
+log = "0.4.20"

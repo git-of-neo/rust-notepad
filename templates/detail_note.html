@@ -1,0 +1,24 @@
+{% extends "layouts/main.html" %}
+
+{% block sidebar %}
+<div hx-get="/notes/" hx-trigger="load delay:100ms"></div>
+{% endblock %}
+
+{% block content %}
+<div class="note-detail">
+    <form hx-patch hx-target="#notification">
+        <h1>{{ note.filename }}</h1>
+        <div class="action-bar">
+            <button type="submit">Save</button>
+            {% include 'fragments/notification.html' %}
+        </div>
+        <textarea name="body">{{ note.body }}</textarea>
+    </form>
+</div>
+{% endblock %}
+
+<style>
+    .action-bar {
+        flex: 1
+    }
+</style>

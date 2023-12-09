@@ -1,0 +1,14 @@
+{% extends "layouts/main.html" %}
+
+{% block sidebar %}
+<div hx-get="/notes/" hx-trigger="load delay:100ms"></div>
+{% endblock %}
+
+{% block content %}
+<form hx-post="/notes/" hx-target="#notification">
+    <label for="filename">Filename</label>
+    <input type="text" name="filename">
+    <button type="submit">Create new file</button>
+    {% include 'fragments/notification.html' %}
+</form>
+{% endblock %}
