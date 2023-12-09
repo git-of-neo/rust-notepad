@@ -15,6 +15,8 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let opts = sqlite::SqliteConnectOptions::from_str(&dotenvy::var("DATABASE_URL")?)?
+        .journal_mode(sqlite::SqliteJournalMode::Wal)
+        .foreign_keys(true)
         .extension_with_entrypoint("./uuid.dll", "sqlite3_uuid_init");
 
     let pool = sqlite::SqlitePool::connect_with(opts)
