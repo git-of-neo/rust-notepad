@@ -21,18 +21,13 @@ bool node_set = false;
 /* Insert your extension code here */
 
 // adapted from https://sqlite.org/src/file/ext/misc/uuid.c
-static void blobToStr(
+static void blobToStrNoDash(
     const unsigned char *inp, 
     unsigned char* oup
 ){
     const char digits[] = "0123456789ABCDEF";
     unsigned char x;
-    int k = 0x550; // bit mask for when to insert dash
-    for (int i=0; i<16; i++, k=k>>1){
-        if ( k&1 ){
-            oup[0] = '-';
-            oup++;
-        }
+    for (int i=0; i<16; i++){
         x = inp[i];
         oup[0] = digits[x>>4];
         oup[1] = digits[x&0xF];
@@ -47,7 +42,7 @@ sqlite3_context *context,
   sqlite3_value **argv
 ){
     unsigned char blob[16];
-    unsigned char buffer[37];
+    unsigned char buffer[33];
     (void) argc;
     (void) argv;
 
@@ -76,8 +71,8 @@ sqlite3_context *context,
     memcpy(blob + 8, clock_seq, 2); // set clock
     memcpy(blob + 10, node, 6); // set node
 
-    blobToStr(blob, buffer);
-    sqlite3_result_text(context, (char *)buffer, 36, SQLITE_TRANSIENT);
+    blobToStrNoDash(blob, buffer);
+    sqlite3_result_text(context, (char *)buffer, 32, SQLITE_TRANSIENT);
 }
 
 #ifdef _WIN32
