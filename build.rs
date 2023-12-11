@@ -15,8 +15,6 @@ fn main() {
             "ext/uuid.c",
             "-I",
             sqlite_path,
-            "-L",
-            sqlite_path,
         ])
         .status()
         .unwrap();
