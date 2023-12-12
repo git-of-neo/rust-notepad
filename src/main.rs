@@ -17,8 +17,8 @@ async fn main() -> anyhow::Result<()> {
     let opts = sqlite::SqliteConnectOptions::from_str(&dotenvy::var("DATABASE_URL")?)?
         .journal_mode(sqlite::SqliteJournalMode::Wal)
         .foreign_keys(true)
-        .extension_with_entrypoint("./uuid.dll", "uuid_init")
-        .extension_with_entrypoint("./fuzzy.dll", "fuzzy_init");
+        .extension_with_entrypoint("./target/ext/uuid.dll", "uuid_init")
+        .extension_with_entrypoint("./target/ext/fuzzy.dll", "fuzzy_init");
 
     let pool = sqlite::SqlitePool::connect_with(opts)
         .await
