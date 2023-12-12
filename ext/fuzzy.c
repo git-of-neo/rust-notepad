@@ -1,6 +1,10 @@
+#include <sqlite3ext.h> 
+SQLITE_EXTENSION_INIT1
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #define min(a,b) (((a)<(b))?(a):(b))
 
@@ -44,4 +48,37 @@ int levenshteinDistance(const char* s, const char* t) {
 }
 
 
+static void sqliteLevenshtein(
+sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+    assert(argc == 2);
+    const unsigned char* s = sqlite3_value_text(argv[0]);
+    const unsigned char* t = sqlite3_value_text(argv[1]);
 
+    int res = levenshteinDistance((const char*) s, (const char*) t);
+    sqlite3_result_int(context, res);
+}
+
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+
+int fuzzy_init(
+  sqlite3 *db, 
+  char **pzErrMsg, 
+  const sqlite3_api_routines *pApi
+){
+    int rc = SQLITE_OK;
+    SQLITE_EXTENSION_INIT2(pApi);
+    (void) pzErrMsg;
+
+    rc = sqlite3_create_function(
+        db, 
+        "levenshtein", 2, 
+        SQLITE_UTF8 | SQLITE_INNOCUOUS | SQLITE_DETERMINISTIC, 
+        0, sqliteLevenshtein, 0, 0);
+
+    return rc;
+}

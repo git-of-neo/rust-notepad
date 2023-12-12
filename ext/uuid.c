@@ -79,7 +79,7 @@ sqlite3_context *context,
 __declspec(dllexport)
 #endif
 
-int sqlite3_uuid_init(
+int uuid_init(
   sqlite3 *db, 
   char **pzErrMsg, 
   const sqlite3_api_routines *pApi
