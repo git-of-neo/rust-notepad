@@ -13,9 +13,9 @@ int levenshteinDistance(const char* s, const char* t) {
     int **dp;
     int m = strlen(s), n = strlen(t), i, j, res;
 
-    dp = (int **) malloc((m+1) * sizeof(int*));
+    dp = (int **) sqlite3_malloc((m+1) * sizeof(int*));
     for (i=0; i<=m; i++){
-        dp[i] = (int*) malloc((n+1) * sizeof(int));
+        dp[i] = (int*) sqlite3_malloc((n+1) * sizeof(int));
     }
 
     dp[0][0] = 0;
@@ -41,8 +41,8 @@ int levenshteinDistance(const char* s, const char* t) {
     }
 
     res = dp[m][n];
-    for (int  i=0; i<m; i++) free(dp[i]);
-    free(dp);
+    for (int  i=0; i<m; i++) sqlite3_free(dp[i]);
+    sqlite3_free(dp);
 
     return res;
 }
