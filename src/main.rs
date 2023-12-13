@@ -3,8 +3,11 @@ use std::str::FromStr;
 
 use actix_web::web;
 use actix_web::HttpServer;
+use log::debug;
 use sqlx::sqlite;
 
+mod commons;
+mod queries;
 mod views;
 
 #[actix_web::main]
@@ -27,7 +30,10 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await
-        .unwrap_or_else(|_| panic!("Database migration failed!"));
+        .unwrap_or_else(|e| {
+            debug!("{:?}", e);
+            panic!("Database migration failed!")
+        });
 
     let mut env = minijinja::Environment::new();
     env.set_loader(minijinja::path_loader("./templates"));
