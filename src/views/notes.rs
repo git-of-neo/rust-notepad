@@ -4,6 +4,8 @@ use crate::queries::Queries;
 use actix_web::web;
 use log::debug;
 use sqlx::sqlite::SqlitePool;
+use html_to_string_macro::html;
+
 
 #[derive(sqlx::FromRow, serde::Serialize)]
 struct LiNote {
@@ -16,6 +18,7 @@ struct DisplayNote {
     filename: String,
     body: String,
 }
+
 
 impl<'a> Queries<'a> {
     async fn get_all_notes(&self) -> Result<Vec<LiNote>, sqlx::Error> {
@@ -68,6 +71,19 @@ impl<'a> Queries<'a> {
     async fn new_note<'tmp>(&self, filename: &'tmp str) -> Result<(), sqlx::Error> {
         self.new_file(constants::PLAIN_TEXT, None, filename, "".as_bytes())
             .await
+    }
+
+    async fn search_note<'tmp>(&self, t: &'tmp str) -> Result<Vec<LiNote>, sqlx::Error>{
+        sqlx::query_as::<_, LiNote>(
+            "
+            SELECT concat('/notes/', uid) as url, display_filename as name
+            FROM file_tree
+            ORDER BY levenshtein(display_filename, ?);
+        ",
+        )
+        .bind(t)
+        .fetch_all(self.pool)
+        .await
     }
 }
 
@@ -179,4 +195,30 @@ pub async fn new_note(
         })
         .unwrap(),
     )
+}
+
+
+#[derive(serde::Deserialize)]
+struct SearchNoteRequest {
+    search: String,
+}
+
+#[actix_web::post("/search")]
+pub async fn search_note(
+    // env: web::Data<minijinja::Environment<'_>>,
+    db: web::Data<SqlitePool>,
+    form: web::Form<SearchNoteRequest>,
+) -> impl actix_web::Responder{
+    // let tmpl = env.get_template("list_notes.html").unwrap();
+    let notes = Queries::new(db.get_ref()).search_note(&form.search).await.unwrap();
+
+    let mut body = String::new();
+
+    for linote in notes.iter(){
+        body.push_str(&html!(
+            <tr><td>{&linote.url}</td><td>{&linote.name}</td></tr>
+        ));
+    }
+
+    HtmlResponse().body(body)
 }

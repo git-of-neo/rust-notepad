@@ -5,6 +5,23 @@
 {% endblock %}
 
 {% block content %}
+<input type="search" 
+       name="search" placeholder="Search files..." 
+       hx-post="/notes/search" 
+       hx-trigger="input changed delay:500ms, search" 
+       hx-target="#search-results">
+
+<table>
+<thead>
+<tr>
+    <th>url</th>
+    <th>filename</th>
+</tr>
+</thead>
+<tbody id="search-results">
+</tbody>
+</table>
+
 <form hx-post="/notes/" hx-target="#notification">
     <label for="filename">Filename</label>
     <input type="text" name="filename">

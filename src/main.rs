@@ -43,7 +43,8 @@ async fn main() -> anyhow::Result<()> {
             .service(views::notes::new_note)
             .service(views::notes::list_notes)
             .service(views::notes::detail_note)
-            .service(views::notes::update_note_body);
+            .service(views::notes::update_note_body)
+            .service(views::notes::search_note);
 
         actix_web::App::new()
             .app_data(web::Data::new(pool.clone()))

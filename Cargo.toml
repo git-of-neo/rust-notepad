@@ -14,3 +14,4 @@ minijinja = { version = "1.0.10", features = ["loader"] }
 env_logger = "0.10.1"
 serde = { version = "1.0.193", features = ["derive"] }
 log = "0.4.20"
+html-to-string-macro = "0.2.5"
