@@ -45,11 +45,17 @@ async fn main() -> anyhow::Result<()> {
             .service(views::notes::detail_note)
             .service(views::notes::update_note_body);
 
+        let file_services = web::scope("/fs")
+            .service(views::fs::file_explorer)
+            .service(views::fs::file_search)
+            .service(views::fs::all_files);
+
         actix_web::App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(env.clone()))
             .service(note_services)
             .service(views::home::home_page)
+            .service(file_services)
     })
     .bind(("localhost", 8080))?
     .run()
