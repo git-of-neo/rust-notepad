@@ -11,10 +11,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
+#include "fuzzy.h"
 
 #ifdef BUILD_EXTENSION
-#include <sqlite3ext.h>
-
 void free2(void *thing)
 {
     sqlite3_free(thing);
@@ -36,12 +35,6 @@ void *malloc2(int size)
     return malloc(size);
 }
 #endif
-
-typedef struct
-{
-    int just;
-    bool nothing;
-} Maybe;
 
 #define Nothing() ((Maybe){.nothing = true})
 #define Just(value) ((Maybe){.just = (value), .nothing = false})
