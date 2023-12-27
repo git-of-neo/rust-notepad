@@ -66,7 +66,7 @@ static inline bool isBeginning(const char prev, const char curr)
     bool wasAlphanum = isalnum(prev);
     bool wasUpper = isupper(prev);
     bool isUpper = isupper(curr);
-    return (isUpper && wasUpper) || !wasAlphanum;
+    return (isUpper && !wasUpper) || !wasAlphanum;
 }
 
 static int fuzzyScore(struct State *state, int s, int t, int streak)
@@ -202,6 +202,10 @@ int main(void)
     res = go("test", "test");
     formatMaybe(&res, pBuffer);
     printf("%s\n", pBuffer); // expected : 46
+
+    res = go("LLL", "SVisualLoggerLogsList.h");
+    formatMaybe(&res, pBuffer);
+    printf("%s\n", pBuffer); // expected : 18
 
     res = go("doesn't exist", "target");
     formatMaybe(&res, pBuffer);
