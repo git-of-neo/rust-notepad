@@ -4,23 +4,25 @@ use std::process::Command;
 
 use std::{env, fs};
 
+fn prep_compile_folder(target_path: &PathBuf) {
+    fs::create_dir_all(target_path).unwrap();
+}
 
-fn build_extension<'a>(sqlite_path: &'a str, path_to_extension: &'a str, output: &'a str) {
-    println!("cargo:rerun-if-changed={}", path_to_extension);
+fn compile_uuid<'a>(src_path: &PathBuf, target_path: &PathBuf, sqlite_path: &'a str) {
+    let mut dll = target_path.clone();
+    dll.push("uuid.dll");
 
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let mut compile_path = PathBuf::from(manifest_dir.clone());
-    compile_path.push("target");
-    compile_path.push("ext");
-    compile_path.push(output);
+    let mut c_extension = src_path.clone();
+    c_extension.push("uuid");
+    c_extension.push("extension.c");
 
     let status = Command::new("gcc")
         .args(&[
             "-g",
             "-shared",
             "-o",
-            &compile_path.as_path().to_string_lossy(),
-            path_to_extension,
+            &dll.as_path().to_string_lossy(),
+            &c_extension.as_path().to_string_lossy(),
             "-I",
             sqlite_path,
         ])
@@ -28,22 +30,55 @@ fn build_extension<'a>(sqlite_path: &'a str, path_to_extension: &'a str, output:
         .unwrap();
 
     if !status.success() {
-        panic!("Extension compilation failed! : {}", path_to_extension);
+        panic!("Failed to compile uuid extension!");
     }
 }
 
-fn prep_compile_folder(){
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let mut extension_path = PathBuf::from(manifest_dir.clone());
-    extension_path.push("target");
-    extension_path.push("ext");
-    fs::create_dir_all(extension_path).unwrap();
+fn compile_fuzzy<'a>(src_path: &PathBuf, target_path: &PathBuf, sqlite_path: &'a str) {
+    let mut src_path = src_path.clone();
+    src_path.push("fuzzy");
+
+    let mut dll = target_path.clone();
+    dll.push("fuzzy.dll");
+
+    let mut c_fuzzy = src_path.clone();
+    c_fuzzy.push("fuzzySorter.c");
+
+    let mut c_extension = src_path.clone();
+    c_extension.push("extension.c");
+
+    let status = Command::new("gcc")
+        .args(&[
+            "-g",
+            "-shared",
+            "-o",
+            &dll.as_path().to_string_lossy(),
+            &c_fuzzy.as_path().to_string_lossy(),
+            &c_extension.as_path().to_string_lossy(),
+            "-I",
+            sqlite_path,
+        ])
+        .status()
+        .unwrap();
+
+    if !status.success() {
+        panic!("Failed to compile fuzzy extension!");
+    }
 }
 
 fn main() {
+    // println!("cargo:rerun-if-changed=ext/");
     let sqlite_path = "lib/sqlite-amalgamation-3440200";
 
-    prep_compile_folder();
-    build_extension(sqlite_path, "ext/uuid.c", "uuid.dll");
-    build_extension(sqlite_path, "ext/fuzzy.c", "fuzzy.dll");
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let mut target_path = PathBuf::from(manifest_dir.clone());
+    target_path.push("target");
+    target_path.push("ext");
+
+    let mut src_path = PathBuf::from(manifest_dir.clone());
+    src_path.push("ext");
+
+    prep_compile_folder(&target_path);
+    compile_uuid(&src_path, &target_path, sqlite_path);
+    compile_fuzzy(&src_path, &target_path, sqlite_path);
 }
