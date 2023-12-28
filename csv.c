@@ -97,6 +97,7 @@ static void getRow(CsvReader *r, char *zBuffer)
             zBuffer[pntr++] = ',';
             break;
         case END_OF_ROW:
+            zBuffer[pntr] = '\0';
             return;
         }
     }
@@ -115,7 +116,10 @@ int main()
 
     char zBuffer[255];
     getRow(&reader, zBuffer);
-    printf("%s", zBuffer);
+    printf("%s\n", zBuffer);
+
+    getRow(&reader, zBuffer);
+    printf("%s\n", zBuffer);
 
     CsvReader_Cleanup(&reader);
 }
