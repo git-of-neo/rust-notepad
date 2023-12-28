@@ -2,7 +2,6 @@
 #include <stdbool.h>
 
 #define CSV_ERR_SIZE 255
-#define CSV_BUFFER_SIZE 1024
 
 typedef enum
 {
@@ -10,7 +9,6 @@ typedef enum
     END_OF_FIELD,
     END_OF_FILE,
     END_OF_ROW,
-    TERMINATED,
 } CsvReader_Err;
 
 typedef struct
@@ -25,8 +23,6 @@ typedef struct
 typedef struct
 {
     FILE *in;
-    char zCol[CSV_BUFFER_SIZE];
-    char zIn[CSV_BUFFER_SIZE];
     char zErrMsg[CSV_ERR_SIZE];
     bool isFailed;
 } CsvReader;
@@ -69,6 +65,8 @@ CsvReader_Result CsvReader_Getc(CsvReader *r)
     char c = fgetc(r->in);
     switch (c)
     {
+    case EOF:
+        return Err(END_OF_FILE);
     case ',':
         return Err(END_OF_FIELD);
     case '\r':
