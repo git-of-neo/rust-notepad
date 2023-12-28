@@ -3,7 +3,7 @@ use crate::queries::Queries;
 use actix_web::web;
 use sqlx::sqlite::SqlitePool;
 
-#[derive(sqlx::FromRow, serde::Serialize)]
+#[derive(sqlx::FromRow, serde::Serialize, Debug)]
 struct DisplayFile {
     url: String,
     display_filename: String,
@@ -21,19 +21,20 @@ impl<'a> Queries<'a> {
         .await
     }
 
-    async fn search_files<'tmp>(
-        &self,
-        fuzzy_name: &'tmp str,
-    ) -> Result<Vec<DisplayFile>, sqlx::Error> {
+    async fn search_files<'tmp>(&self, query: &'tmp str) -> Result<Vec<DisplayFile>, sqlx::Error> {
         sqlx::query_as::<_, DisplayFile>(
             "
-            SELECT concat('/notes/', uid) as url, display_filename 
-            FROM file_tree 
-            ORDER BY levenshtein(display_filename, ?)
+            SELECT concat('/notes/', a.uid) as url, a.display_filename
+            FROM (
+                SELECT fuzzy_score(?, display_filename) as score, b.*
+                FROM file_tree b
+            ) a
+            WHERE a.score IS NOT NULL
+            ORDER BY a.score
             LIMIT 20;
         ",
         )
-        .bind(fuzzy_name)
+        .bind(query)
         .fetch_all(self.pool)
         .await
     }
@@ -64,7 +65,7 @@ pub async fn all_files(
 }
 
 #[derive(serde::Deserialize)]
-struct SearchRequest {
+pub struct SearchRequest {
     query: String,
 }
 
