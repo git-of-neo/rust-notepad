@@ -80,8 +80,9 @@ static int CsvTable_Column(sqlite3_vtab_cursor *, sqlite3_context *, int);
 /* Implementation */
 static int CsvTable_Connect(sqlite3 *db, void *pAux, int argc, const char *const *argv, sqlite3_vtab **ppVTab, char **pzErr)
 {
+    const char *zFilename = argv[argc - 1];
     CsvReader reader;
-    CsvReader_Init(&reader, argv[0]);
+    CsvReader_Init(&reader, zFilename);
 
     if (reader.isFailed)
     {
@@ -91,9 +92,9 @@ static int CsvTable_Connect(sqlite3 *db, void *pAux, int argc, const char *const
     }
 
     CsvTable *tab = sqlite3_malloc(sizeof(CsvTable));
-    size_t nBytes = strlen(argv[0]) * sizeof(char) + sizeof(char);
+    size_t nBytes = strlen(zFilename) * sizeof(char) + sizeof(char);
     tab->zFilename = sqlite3_malloc(nBytes);
-    sqlite3_snprintf(nBytes, tab->zFilename, "%s", argv[0]);
+    sqlite3_snprintf(nBytes, tab->zFilename, "%s", zFilename);
 
     struct StringBuilder builder;
     StringBuilder_Init(&builder);
