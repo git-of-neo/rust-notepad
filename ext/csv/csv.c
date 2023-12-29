@@ -16,7 +16,9 @@ void CsvReader_Init(CsvReader *r, const char *zFilePath)
 
     if (ptr == NULL)
     {
-        CsvReader_SetErr(r, "Cannot open file");
+        char zBuffer[CSV_ERR_SIZE];
+        snprintf(zBuffer, CSV_ERR_SIZE, "Cannot open file %s", zFilePath);
+        CsvReader_SetErr(r, zBuffer);
         return;
     }
 
