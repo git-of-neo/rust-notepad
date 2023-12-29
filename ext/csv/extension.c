@@ -26,6 +26,7 @@ static void StringBuilder_Append(struct StringBuilder *builder, const char c)
         // TODO : handle OOM
         builder->zData = sqlite3_realloc(builder->zData, builder->nCapacity);
     }
+    builder->zData[builder->nLen++] = c;
 }
 
 static void Stringbuilder_Extend(struct StringBuilder *builder, const char *zString)
