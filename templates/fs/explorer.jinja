@@ -1,0 +1,17 @@
+<h3>Files explorer</h3>
+
+<input type="search" 
+       name="query" placeholder="Search files ..." 
+       hx-post="search" 
+       hx-trigger="load, input changed delay:500ms, search" 
+       hx-target="#search-results">
+
+<table>
+<thead>
+<tr>
+    <th>Filename</th>
+</tr>
+</thead>
+<tbody id="search-results" hx-trigger="load" hx-get="all">
+</tbody>
+</table>

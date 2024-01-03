@@ -125,7 +125,7 @@ pub async fn detail_note(
 }
 
 #[derive(serde::Deserialize)]
-struct UpdateBody {
+pub struct UpdateBody {
     body: String,
 }
 
@@ -164,7 +164,7 @@ pub async fn update_note_body(
 }
 
 #[derive(serde::Deserialize)]
-struct NewNoteRequest {
+pub struct NewNoteRequest {
     filename: String,
 }
 
