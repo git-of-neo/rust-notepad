@@ -3,77 +3,74 @@ SQLITE_EXTENSION_INIT1
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 typedef struct CsvTable
 {
     sqlite3_vtab base;
     char *zFilename;
     int nCols;
+    sqlite3 *db;
 } CsvTable;
 
 typedef struct CsvCursor
 {
     sqlite3_vtab_cursor base;
     FILE *pFile;
-    char *azData;
+    char **azData;
     int rowId;
     bool isEof;
 } CsvCursor;
 
-typedef enum ResultTypes {
+typedef enum ResultTypes
+{
     READFIELD_OK,
     READFIELD_EOR,
     READFIELD_EOF,
 } ResultTypes;
 
-
-/* Support these table functions */
-static int CsvTable_Connect(sqlite3 *, void *, int, const char *const *, sqlite3_vtab **, char **);
-static int CsvTable_Open(sqlite3_vtab *, sqlite3_vtab_cursor **);
-static int CsvTable_Close(sqlite3_vtab_cursor *);
-static int CsvTable_Next(sqlite3_vtab_cursor *);
-static int CsvTable_Eof(sqlite3_vtab_cursor *);
-static int CsvTable_Disconnect(sqlite3_vtab *);
-static int CsvTable_Column(sqlite3_vtab_cursor *, sqlite3_context *, int);
-
 /* Implementation */
-static int CsvTable_Eof(sqlite3_vtab_cursor *pCursor) {
+static int CsvTable_Eof(sqlite3_vtab_cursor *pCursor)
+{
     CsvCursor *cursor = (CsvCursor *)pCursor;
-    return cursor -> isEof;
+    return cursor->isEof;
 }
 
-
-char fpeek(FILE *pFile){
+char fpeek(FILE *pFile)
+{
     char c = fgetc(pFile);
     ungetc(c, pFile);
     return c;
 }
 
-ResultTypes readfield(FILE *stream, sqlite3_str *z){
+ResultTypes readfield(FILE *stream, sqlite3_str *z)
+{
     char c2, c;
     char *res;
     bool go = true;
     ResultTypes r = READFIELD_OK;
 
-    while(go){ 
+    while (go)
+    {
         c = fgetc(stream);
-        switch (c){
-            case EOF:
-                r = READFIELD_EOF;
-                go=false;
-                break;
-            case '\r':
-                c2 = fgetc(stream);
-                if (c2 != '\n') 
-                    ungetc(c2, stream);
-            case '\n':
-                r = READFIELD_EOR;
-            case ',':
-                go = false;
-                break;
-            default:
-                sqlite3_str_appendchar(z, 1, c);
-                break;
+        switch (c)
+        {
+        case EOF:
+            r = READFIELD_EOF;
+            go = false;
+            break;
+        case '\r':
+            c2 = fgetc(stream);
+            if (c2 != '\n')
+                ungetc(c2, stream);
+        case '\n':
+            r = READFIELD_EOR;
+        case ',':
+            go = false;
+            break;
+        default:
+            sqlite3_str_appendchar(z, 1, c);
+            break;
         }
     }
 
@@ -109,58 +106,64 @@ static int CsvTable_Connect(sqlite3 *db, void *pAux, int argc, const char *const
     FILE *pFile;
     sqlite3_str *strField;
     int r;
-    bool go =true;
+    bool go = true;
 
     pFile = fopen(pTab->zFilename, "r");
-    if (pFile ==NULL){
+    if (pFile == NULL)
+    {
         *pzErr = sqlite3_mprintf("Cannot open file");
         goto cleanup;
     }
 
     int nCols = 0;
 
-    while(go){
+    while (go)
+    {
         strField = sqlite3_str_new(db);
         r = readfield(pFile, strField);
         field = sqlite3_str_finish(strField);
 
-        switch (r){
-            case READFIELD_EOF:
-                go = false;
-                break;
-            case READFIELD_EOR:
-                go = false;
-            case READFIELD_OK:
-                printf("field %d -> %s\n", nCols, field);
+        switch (r)
+        {
+        case READFIELD_EOF:
+            go = false;
+            break;
+        case READFIELD_EOR:
+            go = false;
+        case READFIELD_OK:
+            printf("field %d -> %s\n", nCols, field);
 
-                if (field == NULL) {
-                    sqlite3_free(field);
-                    break;
-                }
-
-                if (nCols == 0)
-                    sqlite3_str_appendf(strSql, "%s", field);
-                else 
-                    sqlite3_str_appendf(strSql, ", %s", field);
+            if (field == NULL)
+            {
+                sqlite3_free(field);
                 break;
+            }
+
+            if (nCols == 0)
+                sqlite3_str_appendf(strSql, "%s", field);
+            else
+                sqlite3_str_appendf(strSql, ", %s", field);
+            break;
         };
-        
+
         sqlite3_free(field);
         nCols++;
     };
-    
+
     sqlite3_str_appendf(strSql, ")");
     zSchema = sqlite3_str_finish(strSql);
 
     printf("WITH SCHEMA : %s\n", zSchema);
     rc = sqlite3_declare_vtab(db, zSchema);
-    if (rc) {
+    if (rc)
+    {
         *pzErr = sqlite3_mprintf("Bad schema");
         goto cleanup;
     }
 
     // save meta data
-    pTab -> nCols = nCols;
+    pTab->nCols = nCols;
+    pTab->db = db;
 
     // cleanup
 cleanup:
@@ -169,28 +172,102 @@ cleanup:
     return rc;
 };
 
-
-static int CsvTable_Open(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCursor){
+static int CsvTable_Disconnect(sqlite3_vtab *pVtab)
+{
+    CsvTable *table = (CsvTable *)pVtab;
+    sqlite3_free(table->zFilename);
     return SQLITE_OK;
 };
 
-static int CsvTable_Close(sqlite3_vtab_cursor *pVtab){
+static int CsvTable_Open(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCursor)
+{
+    CsvTable *table = (CsvTable *)pVtab;
+    CsvCursor *cursor;
+    size_t nBytes = sizeof(*cursor) + (sizeof(char *)) * table->nCols;
+    cursor = sqlite3_malloc64(nBytes);
+    if (cursor == 0)
+        return SQLITE_NOMEM;
+    memset(cursor, 0, nBytes);
+    cursor->azData = (char **)&cursor[1];
+    *ppCursor = &cursor->base;
+    cursor->pFile = fopen(table->zFilename, "rb");
+    cursor->rowId = 1;
+    if (cursor->pFile == NULL)
+        return SQLITE_ERROR;
     return SQLITE_OK;
-    
 };
 
-static int CsvTable_Next(sqlite3_vtab_cursor *pVtab){
+static int CsvTable_Close(sqlite3_vtab_cursor *pCursor)
+{
+    CsvCursor *cursor = (CsvCursor *)pCursor;
+    CsvTable *table = (CsvTable *)cursor->base.pVtab;
+
+    for (int i = 0; i < table->nCols; i++)
+    {
+        sqlite3_free(cursor->azData[i]);
+    }
+    sqlite3_free(cursor);
+    fclose(cursor->pFile);
     return SQLITE_OK;
 };
 
-static int CsvTable_Disconnect(sqlite3_vtab *pVtab){
+static int CsvTable_Next(sqlite3_vtab_cursor *pCursor)
+{
+    CsvCursor *cursor = (CsvCursor *)pCursor;
+    CsvTable *table = (CsvTable *)cursor->base.pVtab;
+    sqlite3 *db = table->db;
+    int rc = SQLITE_OK;
+
+    sqlite3_str *strField;
+    FILE *pFile = cursor->pFile;
+    ResultTypes r = READFIELD_OK;
+
+    if (fpeek(pFile) == EOF)
+    {
+        cursor->isEof = true;
+        return rc;
+    }
+
+    for (int i = 0; i < table->nCols; i++)
+    {
+        strField = sqlite3_str_new(db);
+        r = readfield(pFile, strField);
+        cursor->azData[i] = sqlite3_str_finish(strField);
+    }
+
+    cursor->rowId++;
+    return rc;
+};
+
+static int CsvTable_Column(sqlite3_vtab_cursor *pCursor, sqlite3_context *ctx, int i)
+{
+    CsvCursor *cursor = (CsvCursor *)pCursor;
+    sqlite3_result_text(ctx, cursor->azData[i], -1, SQLITE_TRANSIENT);
     return SQLITE_OK;
 };
 
-static int CsvTable_Column(sqlite3_vtab_cursor *pvTab, sqlite3_context *ctx, int i){
+static int CsvTable_RowId(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid)
+{
+    CsvCursor *cursor = (CsvCursor *)pCursor;
+    *pRowid = cursor->rowId;
     return SQLITE_OK;
-
 };
+
+static int CsvTable_BestIndex(
+    sqlite3_vtab *tab,
+    sqlite3_index_info *pIdxInfo)
+{
+    pIdxInfo->estimatedCost = 1000000;
+    return SQLITE_OK;
+}
+
+static int CsvTable_Filter(
+    sqlite3_vtab_cursor *pCursor,
+    int idxNum, const char *idxStr,
+    int argc, sqlite3_value **argv)
+{
+    return SQLITE_OK;
+}
 
 static sqlite3_module CsvModule = {
     .iVersion = 0,
@@ -203,7 +280,9 @@ static sqlite3_module CsvModule = {
     .xDisconnect = CsvTable_Disconnect,
     .xDestroy = CsvTable_Disconnect,
     .xColumn = CsvTable_Column,
-};
+    .xRowid = CsvTable_RowId,
+    .xBestIndex = CsvTable_BestIndex,
+    .xFilter = CsvTable_Filter};
 
 #ifdef _WIN32
 __declspec(dllexport)
