@@ -194,6 +194,12 @@ static int CsvTable_Open(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCursor)
     cursor->rowId = 1;
     if (cursor->pFile == NULL)
         return SQLITE_ERROR;
+
+    sqlite3_str *str = sqlite3_str_new(table->db);
+    while (readfield(cursor->pFile, str) != READFIELD_EOR)
+    {
+    }
+
     return SQLITE_OK;
 };
 
@@ -266,7 +272,7 @@ static int CsvTable_Filter(
     int idxNum, const char *idxStr,
     int argc, sqlite3_value **argv)
 {
-    return SQLITE_OK;
+    return CsvTable_Next(pCursor);
 }
 
 static sqlite3_module CsvModule = {
