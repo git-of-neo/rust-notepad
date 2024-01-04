@@ -21,7 +21,8 @@ async fn main() -> anyhow::Result<()> {
         .journal_mode(sqlite::SqliteJournalMode::Wal)
         .foreign_keys(true)
         .extension_with_entrypoint("./target/ext/uuid.dll", "uuid_init")
-        .extension_with_entrypoint("./target/ext/fuzzy.dll", "fuzzy_init");
+        .extension_with_entrypoint("./target/ext/fuzzy.dll", "fuzzy_init")
+        .extension("./target/ext/csv.dll");
 
     let pool = sqlite::SqlitePool::connect_with(opts)
         .await

@@ -66,6 +66,32 @@ fn compile_fuzzy<'a>(src_path: &PathBuf, target_path: &PathBuf, sqlite_path: &'a
     }
 }
 
+fn compile_csv<'a>(src_path: &PathBuf, target_path: &PathBuf, sqlite_path: &'a str) {
+    let mut dll = target_path.clone();
+    dll.push("csv.dll");
+
+    let mut c_extension = src_path.clone();
+    c_extension.push("csv");
+    c_extension.push("extension.c");
+
+    let status = Command::new("gcc")
+        .args(&[
+            "-g",
+            "-shared",
+            "-o",
+            &dll.as_path().to_string_lossy(),
+            &c_extension.as_path().to_string_lossy(),
+            "-I",
+            sqlite_path,
+        ])
+        .status()
+        .unwrap();
+
+    if !status.success() {
+        panic!("Failed to compile csv extension!");
+    }
+}
+
 fn main() {
     // println!("cargo:rerun-if-changed=ext/");
     let sqlite_path = "lib/sqlite-amalgamation-3440200";
@@ -81,4 +107,5 @@ fn main() {
     prep_compile_folder(&target_path);
     compile_uuid(&src_path, &target_path, sqlite_path);
     compile_fuzzy(&src_path, &target_path, sqlite_path);
+    compile_csv(&src_path, &target_path, sqlite_path);
 }
