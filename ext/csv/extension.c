@@ -174,8 +174,6 @@ static int CsvTable_Connect(sqlite3 *db, void *pAux, int argc, const char *const
         case READFIELD_EOR:
             go = false;
         case READFIELD_OK:
-            printf("field %d -> %s\n", nCols, field);
-
             if (field == NULL)
             {
                 sqlite3_free(field);
