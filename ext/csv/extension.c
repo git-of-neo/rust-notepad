@@ -43,6 +43,49 @@ char fpeek(FILE *pFile)
     return c;
 }
 
+void readArgument(sqlite3_str *s, const char *arg)
+{
+    // trim head
+    bool go1;
+    do
+    {
+        switch (*arg)
+        {
+        case ' ':
+        case '\'':
+        case '\"':
+            arg++;
+            break;
+        default:
+            go1 = false;
+            break;
+        };
+    } while (go1);
+
+    // remaining
+    const char *prev = arg;
+    while (*arg != '\0')
+    {
+        switch (*arg)
+        {
+        case ' ':
+        case '\'':
+        case '\"':
+            arg++;
+            break;
+        default:
+            while (prev != arg)
+            {
+                sqlite3_str_appendchar(s, 1, *prev);
+            };
+            sqlite3_str_appendchar(s, 1, *arg);
+            prev++;
+            arg++;
+            break;
+        }
+    }
+}
+
 ResultTypes readfield(FILE *stream, sqlite3_str *z)
 {
     char c2, c;
@@ -94,7 +137,7 @@ static int CsvTable_Connect(sqlite3 *db, void *pAux, int argc, const char *const
 
     // save filename
     sqlite3_str *strFilename = sqlite3_str_new(db);
-    sqlite3_str_appendf(strFilename, "%s", argv[argc - 1]);
+    readArgument(strFilename, argv[argc - 1]);
     pTab->zFilename = sqlite3_str_finish(strFilename);
     printf("USING FILE : %s\n", pTab->zFilename);
 
