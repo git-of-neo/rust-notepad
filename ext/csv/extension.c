@@ -22,6 +22,12 @@ typedef struct CsvCursor
     bool isEof;
 } CsvCursor;
 
+void CsvCursor_Reset(CsvCursor *cursor){
+    rewind(cursor->pFile);
+    cursor -> rowId = 1;
+    cursor->isEof = false;
+}
+
 typedef enum ResultTypes
 {
     READFIELD_OK,
@@ -84,6 +90,26 @@ void readArgument(sqlite3_str *s, const char *arg)
             break;
         }
     }
+}
+
+void skipHeader(FILE *stream){
+    bool go = true;
+    char c, c2;
+    do {
+        c = fgetc(stream);
+        switch(c) {
+            case EOF:
+            case '\r':
+                c2 = fgetc(stream);
+                if (c2 != '\n')
+                    ungetc(c2, stream);
+            case '\n':
+                go = false;
+                break;
+            default:
+                break;
+        }
+    } while (go);
 }
 
 ResultTypes readfield(FILE *stream, sqlite3_str *z)
@@ -224,23 +250,22 @@ static int CsvTable_Open(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCursor)
 {
     CsvTable *table = (CsvTable *)pVtab;
     CsvCursor *cursor;
+
     size_t nBytes = sizeof(*cursor) + (sizeof(char *)) * table->nCols;
     cursor = sqlite3_malloc64(nBytes);
     if (cursor == 0)
         return SQLITE_NOMEM;
     memset(cursor, 0, nBytes);
+
     cursor->azData = (char **)&cursor[1];
     *ppCursor = &cursor->base;
+
     cursor->pFile = fopen(table->zFilename, "rb");
     cursor->rowId = 1;
     if (cursor->pFile == NULL)
         return SQLITE_ERROR;
 
-    sqlite3_str *str = sqlite3_str_new(table->db);
-    while (readfield(cursor->pFile, str) != READFIELD_EOR)
-    {
-    }
-
+    skipHeader(cursor->pFile);
     return SQLITE_OK;
 };
 
@@ -313,6 +338,9 @@ static int CsvTable_Filter(
     int idxNum, const char *idxStr,
     int argc, sqlite3_value **argv)
 {
+    CsvCursor *cursor = (CsvCursor *) pCursor;
+    CsvCursor_Reset(cursor);
+    skipHeader(cursor->pFile);
     return CsvTable_Next(pCursor);
 }
 
